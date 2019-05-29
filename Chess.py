@@ -19,8 +19,10 @@ game_layout = {
                 1: ['pawn' for _ in range(0,8)],
                 0: ['rook', 'knight', 'bishop', 'queen', 'king', 'bishop', 'knight', 'rook'],
                 'white': [0,1],
-                'black': [6,7]
+                'black': [2, 6, 7]
 }
+
+# ====================Classes=========================
 
 
 class game():
@@ -30,6 +32,7 @@ class game():
         self.color_to_move = 'white'
 
         self.board = board(self.layout)   # creates the board
+        self.all_legal_moves()
 
     def fill(self, gl):
         for i in range(0,8,1):
@@ -58,14 +61,19 @@ class game():
         elif type(start) == int:
             self.board.move_by_index(start, end)
         self.turns += 1
+        self.all_legal_moves()   # updates all legal moves with new board configuration
 
-    def show_legal_moves(self):
+    def all_legal_moves(self):
         max = self.board.num_pieces
         for i in range(0, max):
-            print([self.board.pieces[i].identity, self.board.find_legal_moves(i)])
+            self.board.find_legal_moves(i)
 
+    def show_legal_moves(self):   # for seeing, debugging
+        max = self.board.num_pieces
+        for i in range(0, max):
+            # self.board.find_legal_moves(i)
+            print([self.board.pieces[i].identity, self.board.pieces[i].legal_moves])
 
-# ====================Classes=========================
 
 class board():
     def __init__(self, layout):
@@ -99,14 +107,18 @@ class board():
             print([self.grid[i][j].identity for j in range(0,8)])
         print('\n')
 
-    def move_by_index(self, index, end_pos):
+    def move_by_index(self, index, end_pos):  # requires selected.legal_moves to already be generated
         selected = self.pieces[index]
         start_pos = selected.location
-        selected.legal_moves = self.find_legal_moves(index)   # change later, legal moves should be calculated at start of every turn
 
         if end_pos in selected.legal_moves:
             selected.turn += 1
             selected.location = end_pos
+
+            captured_index = self.grid[end_pos[0]][end_pos[1]].index
+            if captured_index is not None:
+                self.pieces[captured_index].active = False
+                self.pieces[captured_index].location = None
             self.grid[end_pos[0]][end_pos[1]] = self.grid[start_pos[0]][start_pos[1]]
             self.grid[start_pos[0]][start_pos[1]] = piece(0)
         else:
@@ -142,10 +154,15 @@ class board():
     def find_legal_moves(self, index):
         selected = self.pieces[index]
         side = selected.side
+        activity = selected.active
         r = selected.moverule[0]
         l = []  # legal moves
 
-        if r == 'p':    # there's really nothing to say here except sorry
+        if activity is False:    # returns [] for captured pieces
+            selected.legal_moves = l
+            return
+
+        if r == 'p':    # seems like spaghetti code, I'll have to figure out how to simplify
             if selected.side == 'white':
                 ref = [[0, 1], [0, 2], [-1, 1], [1, 1]]
             else:
@@ -221,7 +238,7 @@ class board():
                     else:
                         break
 
-        return l
+        selected.legal_moves = l
 
 
 class piece():
@@ -233,6 +250,7 @@ class piece():
         self.basis = None
         self.side = None
         self.legal_moves = None
+        self.active = True
 
         if move in common_pieces:
             moverule = common_pieces[move]
