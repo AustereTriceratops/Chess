@@ -1,5 +1,6 @@
 # TODO:
-# have the game switch between whte and black to move
+# castling
+# have the game switch between white and black to move
 # code check and checkmate
 
 common_pieces = {
@@ -10,7 +11,7 @@ common_pieces = {
                 'king': 'Q1',
                 'pawn': 'p',
                 'threeleaper': 'h03',
-                'nightrider': 'r12'
+                'nightrider': 'r12',
 }
 
 game_layout = {
@@ -19,7 +20,7 @@ game_layout = {
                 1: ['pawn' for _ in range(0,8)],
                 0: ['rook', 'knight', 'bishop', 'queen', 'king', 'bishop', 'knight', 'rook'],
                 'white': [0,1],
-                'black': [2, 6, 7]
+                'black': [6, 7]
 }
 
 # ====================Classes=========================
@@ -62,6 +63,7 @@ class game():
             self.board.move_by_index(start, end)
         self.turns += 1
         self.all_legal_moves()   # updates all legal moves with new board configuration
+        self.board.show()
 
     def all_legal_moves(self):
         max = self.board.num_pieces
@@ -103,8 +105,8 @@ class board():
                     self.pieces.append(m)
 
     def show(self):
-        for i in range(0,8):
-            print([self.grid[i][j].identity for j in range(0,8)])
+        for i in range(7,-1,-1):
+            print([self.grid[j][i].identity for j in range(0,8)])
         print('\n')
 
     def move_by_index(self, index, end_pos):  # requires selected.legal_moves to already be generated
@@ -138,8 +140,9 @@ class board():
         index = self.index_from_location(start_pos)
         self.move_by_index(index, end_pos)
 
+
     def is_vacant(self, pos):  # will require a reference side (black/white) for captures
-        if self.grid[pos[0]][pos[1]].identity == 0:
+        if self.grid[pos[0]][pos[1]].identity == '__':
             return True
         else:
             return False
@@ -257,6 +260,8 @@ class piece():
             self.moverule = moverule
             self.identity = move[0:2]
             self.generate_moves()
+        elif move == 0:
+            self.identity = '__'
         else:
             self.moverule = move
 
@@ -343,9 +348,8 @@ class piece():
 # =================Calls & debugging======================
 
 
-a = game()
-a.move([1,0],[2,2])
-a.show_legal_moves()
+
+
 
 
 
