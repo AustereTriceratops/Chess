@@ -1,7 +1,9 @@
 # TODO:
 # castling
-# have the game switch between white and black to move
 # code check and checkmate
+# move common_pieces and game_layout to separate files
+
+
 
 common_pieces = {
                 'knight': 'h12',
@@ -62,8 +64,13 @@ class game():
         elif type(start) == int:
             self.board.move_by_index(start, end)
         self.turns += 1
+        self.find_color_to_move()
         self.all_legal_moves()   # updates all legal moves with new board configuration
         self.board.show()
+
+    def find_color_to_move(self): # might be better as a property
+        colors = ['white', 'black']
+        self.color_to_move = colors[self.turns % 2]
 
     def all_legal_moves(self):
         max = self.board.num_pieces
@@ -71,8 +78,11 @@ class game():
             self.board.find_legal_moves(i)
 
     def show_legal_moves(self):   # for seeing, debugging
-        max = self.board.num_pieces
-        for i in range(0, max):
+        if self.color_to_move == 'white':
+            indices = self.board.white_indices
+        elif self.color_to_move == 'black':
+            indices = self.board.black_indices
+        for i in indices:
             # self.board.find_legal_moves(i)
             print([self.board.pieces[i].identity, self.board.pieces[i].legal_moves])
 
@@ -83,6 +93,8 @@ class board():
         self.grid = grid              # Grid stores things as [x][y]
         self.num_pieces = 0
         self.pieces = []
+        self.white_indices = []
+        self.black_indices = []
         self.layout = layout
 
         self.instantiate_pieces()
@@ -101,8 +113,12 @@ class board():
                 self.grid[n][i] = m
                 if entry != 0:
                     self.grid[n][i].index = self.num_pieces
-                    self.num_pieces += 1
                     self.pieces.append(m)
+                    if m.side == 'white':
+                        self.white_indices.append(self.num_pieces)
+                    elif m.side == 'black':
+                        self.black_indices.append(self.num_pieces)
+                    self.num_pieces += 1
 
     def show(self):
         for i in range(7,-1,-1):
@@ -128,7 +144,6 @@ class board():
                 disp = end_pos[1] - start_pos[1]
                 if disp == 2 or disp == -2:  # Change later?
                     selected.ep = True  # only pawns which move 2 forward are eligible for ep capture
-                    print(selected.ep)
         elif end_pos in selected.special_moves:
             selected.turn += 1
             selected.location = end_pos
@@ -282,7 +297,7 @@ class piece():
         self.index = None
         self.turn = 0
         self.identity = move
-        self.basis = None
+        self.basis = None   # remove?
         self.side = None
         self.legal_moves = None
         self.special_moves = None
@@ -382,9 +397,10 @@ class piece():
 # =================Calls & debugging======================
 
 
-
-
-
+a = game()
+a.show_legal_moves()
+a.move(1,[2,2])
+a.show_legal_moves()
 
 
 
