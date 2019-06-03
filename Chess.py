@@ -44,15 +44,15 @@ class game():
                 gl[i] = [0 for _ in range(0,8)]
         return gl
 
-    def uniquePieces(self, x):  # not used
+    def unique_pieces(self, x):  # not used
         result = []
         for i in range(0, len(x)):
             if x[i] not in result:
                 result.append(x[i])
         return result
 
-    def enumeratePieces(self, gl):  # also not used
-        uniques = self.uniquePieces(gl)
+    def enumerate_pieces(self, gl):  # also not used
+        uniques = self.unique_pieces(gl)
         for i in range(0,1):
             pass
 
@@ -118,15 +118,38 @@ class board():
             selected.location = end_pos
 
             captured_index = self.grid[end_pos[0]][end_pos[1]].index
-            if captured_index is not None:
+            if captured_index is not None:  # finds a captured piece and removes it from active play
                 self.pieces[captured_index].active = False
                 self.pieces[captured_index].location = None
             self.grid[end_pos[0]][end_pos[1]] = self.grid[start_pos[0]][start_pos[1]]
             self.grid[start_pos[0]][start_pos[1]] = piece(0)
+
+            if selected.moverule[0] == 'p':
+                disp = end_pos[1] - start_pos[1]
+                if disp == 2 or disp == -2:  # Change later?
+                    selected.ep = True  # only pawns which move 2 forward are eligible for ep capture
+                    print(selected.ep)
+        elif end_pos in selected.special_moves:
+            selected.turn += 1
+            selected.location = end_pos
+
+            if selected.identity[0] == 'p':
+                captured_index = self.grid[end_pos[0]][end_pos[1]-1].index
+                self.pieces[captured_index].active = False
+                self.pieces[captured_index].location = None
+                self.grid[end_pos[0]][end_pos[1]] = self.grid[start_pos[0]][start_pos[1]]
+                self.grid[end_pos[0]][end_pos[1] - 1] = piece(0)
+                self.grid[start_pos[0]][start_pos[1]] = piece(0)
+            print('something special')
         else:
             print("not legal")
 
-        self.show()
+        # self.show()
+
+    def clear_en_passant(self, index):  # broken very broken
+        selected = self.pieces[index]
+        if selected.ep:  # en passant must be done immediately after or else it can't be used
+            selected.ep = False
 
     def index_from_location(self, loc):  # [x,y]
         assert type(loc) is list
@@ -139,7 +162,6 @@ class board():
     def move_by_location(self, start_pos, end_pos):
         index = self.index_from_location(start_pos)
         self.move_by_index(index, end_pos)
-
 
     def is_vacant(self, pos):  # will require a reference side (black/white) for captures
         if self.grid[pos[0]][pos[1]].identity == '__':
@@ -160,6 +182,7 @@ class board():
         activity = selected.active
         r = selected.moverule[0]
         l = []  # legal moves
+        s = []  # special moves (promotion, en passant, castling)
 
         if activity is False:    # returns [] for captured pieces
             selected.legal_moves = l
@@ -172,7 +195,7 @@ class board():
                 ref = [[0, -1], [0, -2], [-1, -1], [1, -1]]
             promotion = ['promote_Q', 'promote_kn']
             spots = [[ref[i][n] + selected.location[n] for n in range(0, 2)] for i in range(0, len(ref))]
-
+            en_passant = [[selected.location[0]-1,selected.location[1]], [selected.location[0]+1,selected.location[1]]]
             if 0 <= spots[0][0] < 8 and 0 <= spots[0][1] < 8:
                 if self.is_vacant(spots[0]):
                     l.append(spots[0])
@@ -183,6 +206,14 @@ class board():
                 if 0 <= spots[i][0] < 8 and 0 <= spots[i][1] < 8:
                     if not self.is_vacant(spots[i]) and self.is_capturable(spots[i], side):
                         l.append(spots[i])
+            for i in range(0,2):  # adds en passant to special moves
+                ep = en_passant[i]
+                if 0 <= ep[0] < 8 and 0 <= ep[1] < 8:
+                    cap = self.grid[ep[0]][ep[1]]
+                    if cap.identity[0] == 'p' and cap.ep and self.is_capturable(ep, side):
+                        s.append(spots[i+2])
+
+
 
         if r == 'h':
             ref = selected.moves
@@ -242,6 +273,7 @@ class board():
                         break
 
         selected.legal_moves = l
+        selected.special_moves = s
 
 
 class piece():
@@ -253,7 +285,9 @@ class piece():
         self.basis = None
         self.side = None
         self.legal_moves = None
+        self.special_moves = None
         self.active = True
+        self.ep = False
 
         if move in common_pieces:
             moverule = common_pieces[move]
