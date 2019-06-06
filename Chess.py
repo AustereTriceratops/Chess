@@ -128,8 +128,10 @@ class board():
     def move_by_index(self, index, end_pos):  # requires selected.legal_moves to already be generated
         selected = self.pieces[index]
         start_pos = selected.location
+        moved = False
 
         if end_pos in selected.legal_moves:
+            moved = True
             selected.turn += 1
             selected.location = end_pos
 
@@ -145,6 +147,7 @@ class board():
                 if disp == 2 or disp == -2:  # Change later?
                     selected.ep = True  # only pawns which move 2 forward are eligible for ep capture
         elif end_pos in selected.special_moves:
+            moved = True
             selected.turn += 1
             selected.location = end_pos
 
@@ -155,11 +158,13 @@ class board():
                 self.grid[end_pos[0]][end_pos[1]] = self.grid[start_pos[0]][start_pos[1]]
                 self.grid[end_pos[0]][end_pos[1] - 1] = piece(0)
                 self.grid[start_pos[0]][start_pos[1]] = piece(0)
-            print('something special')
         else:
             print("not legal")
 
-        # self.show()
+        if moved and selected.identity[0] == 'p':  # pawn promotion to queen
+            if end_pos[1] == 0 or end_pos[1] == 7:
+                selected.promote('queen')
+
 
     def clear_en_passant(self, index):  # broken very broken
         selected = self.pieces[index]
@@ -382,6 +387,11 @@ class piece():
 
     def show_moves(self):
         print(self.moves)
+
+    def promote(self, move):
+        self.moverule = common_pieces[move]
+        self.identity = move[0:2]
+        self.generate_moves()
 
     def is_possible_move(self,startPos, newPos):  # outdated and not used
         assert type(newPos) == list
