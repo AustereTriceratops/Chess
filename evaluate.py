@@ -1,4 +1,5 @@
 import json
+from analysis import piece_mobility
 
 
 def evaluate(_board, scoring_dict, color=True):  # white: True
@@ -19,6 +20,9 @@ def evaluate(_board, scoring_dict, color=True):  # white: True
                 score += scoring_dict["position_val"][str(i)][p]
             for op in opponent_positions:
                 score -= scoring_dict["position_val"][str(i)][op]
+                
+        if "mobility_val" in dict_keys and i in [5, 6]: # only consider queen and king for performance
+            score += scoring_dict["mobility_val"][str(i)] * piece_mobility(_board, i, color=color)
 
     return score
 
