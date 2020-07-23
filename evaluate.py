@@ -22,7 +22,7 @@ def evaluate(_board, scoring_dict, color=True):  # white: True
                 score -= scoring_dict["position_val"][str(i)][op]
                 
         if "mobility_val" in dict_keys and i in [5, 6]: # only consider queen and king for performance
-            score += scoring_dict["mobility_val"][str(i)] * piece_mobility(_board, i, color=color)
+            score += scoring_dict["mobility_val"][str(i)] * (piece_mobility(_board, i, color=color) - piece_mobility(_board, i, color=not color))
 
     return score
 
