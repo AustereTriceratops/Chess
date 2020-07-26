@@ -21,10 +21,15 @@ def rehash(h_0, board, move):  # pre-move board, chess.Move
     to_sq = move.to_square
     ind = board.piece_type_at(from_sq) + 6 * board.color_at(from_sq) - 1
     
-    if ind in [5, 11] and from_sq in [4, 60]:
+    if ind in [5, 11] and from_sq in [4, 60]:  # lazy castling
         newhash = hash_board(board)
         return newhash 
     
     newhash ^= zobrist_keys[from_sq][ind]
     newhash ^= zobrist_keys[to_sq][ind]
+    
+    if board.piece_type_at(to_sq) is not None:
+        ind = board.piece_type_at(to_sq) + 6 * board.color_at(to_sq) - 1
+        newhash ^= zobrist_keys[to_sq][ind]
+        
     return newhash

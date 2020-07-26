@@ -1,5 +1,6 @@
 from evaluate import evaluate
 from hashing import *
+import copy
 
 tp_table_size = 10000000
 
@@ -17,7 +18,7 @@ class Node():
     def create_children(self):  
         self.children = []
         board = self.board
-        data = self.data.copy()
+        data = copy.deepcopy(self.data)  # dict.copy() doesn't work
         zobrist_key = data["zobrist_key"]
 
         for move in list(board.legal_moves):
