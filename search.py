@@ -1,6 +1,7 @@
 from evaluate import evaluate
 from hashing import *
 
+tp_table_size = 10000000
 
 class Node():
     def __init__(self, board, parent=None, **data):
@@ -8,9 +9,28 @@ class Node():
         self.board = board.copy()
         self.children = []
         self.data = data
+        
+        if parent is None:
+            self.data["zobrist_key"] = hash_board(self.board)
+            self.data["hashval"] = self.data["zobrist_key"] % tp_table_size
 
-    def create_children(self, variation_func):  # variation_func should be Node -> Node[]
-        self.children = variation_func(self)
+    def create_children(self):  
+        self.children = []
+        board = self.board
+        data = self.data.copy()
+        zobrist_key = data["zobrist_key"]
+
+        for move in list(board.legal_moves):
+            v = board.copy()
+
+            data['zobrist_key'] = rehash(zobrist_key, v, move)
+            data['hashval'] = data['zobrist_key'] % tp_table_size
+            data["move"] = move
+
+            v.push(move)
+
+            self.children.append(Node(v, parent=self, **data))
+            
 
     def function_on_leaves(self, func, *args, **kwargs):
         if not self.children:
@@ -26,43 +46,9 @@ class Node():
             child.function_on_tree(func, *args, **kwargs)
 
 
-def create_variations_2(node):  # Node[]
-    variations = []
-    board = node.board
-    data = node.data.copy()
-    zobrist_key = data["zobrist_key"]
-
-    for move in list(board.legal_moves):
-        v = board.copy()
-        
-        data['zobrist_key'] = rehash(zobrist_key, v, move)
-        data['hashval'] = data['zobrist_key'] % 10000000
-        data["move"] = move
-        
-        v.push(move)
-
-        variations.append(Node(v, parent=node, **data))
-
-    return variations
-
-
-def create_variations(node):  # Node[]
-    variations = []
-    data = node.data.copy()
-    board = node.board
-
-    for move in list(board.legal_moves):
-        v = board.copy()
-        v.push(move)
-
-        data["move"] = move
-        variations.append(Node(v, parent=node, **data))
-
-    return variations
-
-
-def alpha_beta_search_2(node, depth, scoring_dict, variation_func, alpha, beta, 
-                        transposition_table={i: None for i in range(10000000)}):
+# search with transposition table
+def alpha_beta_search_2(node, depth, scoring_dict, alpha, beta, 
+                        transposition_table={i: None for i in range(10000000)}):   
     color = node.board.turn
 
     if depth == 0 or node.board.is_game_over():
@@ -72,12 +58,12 @@ def alpha_beta_search_2(node, depth, scoring_dict, variation_func, alpha, beta,
             node.data['score'] = evaluate(node.board, scoring_dict)
             transposition_table[hashval] = node.data['score']
             return
-        elif transposition_table[hashval] is not None:
+        else:
             node.data['score'] = transposition_table[hashval]
             return
 
     if not node.children:
-        node.create_children(variation_func)
+        node.create_children()
 
     if color:
         maxval = -100000000
@@ -88,11 +74,10 @@ def alpha_beta_search_2(node, depth, scoring_dict, variation_func, alpha, beta,
             
             if transposition_table[hashval] is None:
                 alpha_beta_search_2(
-                    child, depth - 1, scoring_dict, variation_func, alpha, beta, 
-                    transposition_table=transposition_table)
+                    child, depth - 1, scoring_dict, alpha, beta, transposition_table=transposition_table)
                 transposition_table[hashval] = child.data['score']
                 
-            elif transposition_table[hashval] is not None:
+            else:
                 #print(child.data["zobrist_key"], hashval, transposition_table[hashval])
                 child.data['score'] = transposition_table[hashval]
                 
@@ -119,11 +104,10 @@ def alpha_beta_search_2(node, depth, scoring_dict, variation_func, alpha, beta,
             
             if transposition_table[hashval] is None:
                 alpha_beta_search_2(
-                    child, depth - 1, scoring_dict, variation_func, alpha, beta, 
-                    transposition_table=transposition_table)
+                    child, depth - 1, scoring_dict, alpha, beta, transposition_table=transposition_table)
                 transposition_table[hashval] = child.data['score']
                 
-            elif transposition_table[hashval] is not None:
+            else:
                 #print(child.data["zobrist_key"], hashval, transposition_table[hashval])
                 child.data['score'] = transposition_table[hashval]
                 
@@ -142,7 +126,7 @@ def alpha_beta_search_2(node, depth, scoring_dict, variation_func, alpha, beta,
         return best_move
 
     
-def alpha_beta_search(node, depth, scoring_dict, variation_func, alpha, beta):
+def alpha_beta_search(node, depth, scoring_dict, alpha, beta):
     color = node.board.turn
 
     if depth == 0 or node.board.is_game_over():
@@ -150,14 +134,14 @@ def alpha_beta_search(node, depth, scoring_dict, variation_func, alpha, beta):
         return
 
     if not node.children:
-        node.create_children(variation_func)
+        node.create_children()
 
     if color:
         maxval = -100000000
         best_move = None
 
         for child in node.children:
-            alpha_beta_search(child, depth - 1, scoring_dict, variation_func, alpha, beta)
+            alpha_beta_search(child, depth - 1, scoring_dict, alpha, beta)
             score = child.data['score']
             maxval = max(maxval, score)
 
@@ -176,7 +160,7 @@ def alpha_beta_search(node, depth, scoring_dict, variation_func, alpha, beta):
         best_move = None
 
         for child in node.children:
-            alpha_beta_search(child, depth - 1, scoring_dict, variation_func, alpha, beta)
+            alpha_beta_search(child, depth - 1, scoring_dict, alpha, beta)
             score = child.data['score']
             minval = min(minval, score)
 
