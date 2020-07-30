@@ -2,7 +2,7 @@ from evaluate import evaluate
 from hashing import *
 import copy
 
-tp_table_size = 10000000
+tp_table_size = 100
 
 class Node():
     def __init__(self, board, parent=None, **data):
@@ -48,8 +48,9 @@ class Node():
 
 
 # search with transposition table
+# transposition table doesn't seem to be working properly
 def alpha_beta_search_2(node, depth, scoring_dict, alpha, beta, 
-                        transposition_table={i: None for i in range(10000000)}):   
+                        transposition_table={i: None for i in range(tp_table_size)}):   
     color = node.board.turn
 
     if depth == 0 or node.board.is_game_over():
